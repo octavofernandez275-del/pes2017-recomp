@@ -1,0 +1,69 @@
+name: Build APK
+
+# Manual only: the build needs the player's own default.xex, which is never committed.
+# One-time setup (REPOSITORY MUST BE PRIVATE): create a release with the tag `xex` and attach
+# default.xex to it as an asset. This workflow downloads it, recompiles it to C++ with build.sh
+# and builds the APK with Gradle. The APK is signed with the debug key (installable, not for sale).
+on:
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Refuse to run in a public repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          visibility=$(gh api "repos/${{ github.repository }}" --jq .visibility)
+          if [ "$visibility" != "private" ]; then
+            echo "This repository is $visibility. Make it private before the game file is attached to it."
+            exit 1
+          fi
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Tools and Android NDK/SDK
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build clang cmake python3
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            "ndk;28.2.13676358" "platforms;android-35" "build-tools;35.0.0" >/dev/null
+
+      - name: Get default.xex from the private release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p pes
+          gh release download xex --pattern default.xex --dir pes
+          ls -la pes
+
+      - name: Recompile PPC to C++
+        env:
+          RECOMPILE_ONLY: "1"
+        run: |
+          GAME="$PWD/pes" JOBS="$(nproc)" CMAKE_CC="$(command -v clang)" CMAKE_CXX="$(command -v clang++)" ./build.sh
+
+      - name: Build the APK
+        working-directory: android
+        env:
+          PES17_NATIVE_OPTIMISATION: "-O2"
+          ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/28.2.13676358
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleRelease --no-daemon --stacktrace
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pes2017-recomp-apk
+          path: android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
