@@ -90,6 +90,29 @@ namespace
         for (uint32_t cpu = 0; cpu < g_coreCount; cpu++)
             if (maximum[cpu] >= threshold) { CPU_SET(int(cpu), &g_bigCores); g_bigCoreCount++; }
 
+        // Equal clocks on every core (a Unisoc T7200's A75s and A55s) leave nothing to pick
+        // from: ask the scheduler's capacity figure instead, which does tell them apart.
+        if (g_bigCoreCount == g_coreCount)
+        {
+            std::vector<uint64_t> capacity(g_coreCount, 0);
+            uint64_t best = 0, worst = ~0ull;
+            for (uint32_t cpu = 0; cpu < g_coreCount; cpu++)
+            {
+                char path[128];
+                std::snprintf(path, sizeof path, "/sys/devices/system/cpu/cpu%u/cpu_capacity", cpu);
+                capacity[cpu] = ReadNumber(path);
+                best = std::max(best, capacity[cpu]);
+                worst = std::min(worst, capacity[cpu]);
+            }
+            if (best > 0 && worst > 0 && best * 3 > worst * 4)
+            {
+                CPU_ZERO(&g_bigCores);
+                g_bigCoreCount = 0;
+                for (uint32_t cpu = 0; cpu < g_coreCount; cpu++)
+                    if (capacity[cpu] >= best - best / 3) { CPU_SET(int(cpu), &g_bigCores); g_bigCoreCount++; }
+            }
+        }
+
         // If we found at least 2 fast cores, keep them; otherwise (e.g. single-core
         // or uniform cluster) use all cores.
         if (g_bigCoreCount < 2)

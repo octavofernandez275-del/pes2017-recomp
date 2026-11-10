@@ -59,6 +59,7 @@ them as unset whatever the environment says, and also drops the keys `F7`, `F10`
 | switch | | effect |
 |---|---|---|
 | `PES17_SCALE=<2 or 3>` | R | draws every surface that many times wider and taller than the title's: a 2560x1440 or 3840x2160 frame. The launcher's RESOLUTION entry sets it in the settings file ([rendering.md](rendering.md#resolution-scale)) |
+| `PES17_SCENE_FLOOR=<6..8>` | R | the least the scene may be drawn at, in sixteenths of 1280x720, for the heat and load rules and the scene scale itself (8 = half, the default; 6 = 480x270). For a GPU far weaker than the one the port was tuned on |
 | `PES17_ASPECT=<w/h>` | R | a screen wider than 16:9 (up to 3): the title's cameras are given that aspect (the 16:9 floats at `T_DATA_Aspect16x9`/`b`, `title.h`) and the 1280x720 frame is shown stretched to it, so the view is wider and the pitch keeps its shape; the interface is stretched. The Android app sets it from the screen under Settings > Widescreen |
 | `PES17_FPS_LIMIT=<n>` | R | how many frames a second the title draws at most. Unset or 60 is the console's pacing, a frame at every blank. Any other number takes the title off the blank, with that number as its own limiter's; 0 is no limit. The limiter counts whole milliseconds a frame, so 120 gives 125 and 144 gives 166. The launcher's FPS LIMIT entry sets it in the settings file ([rendering.md](rendering.md#more-than-60-frames-a-second)) |
 | `PES17_MSAA=<n>` | R | draws every surface the title multisamples at n samples, rounded down to what the device offers |

@@ -71,6 +71,53 @@ object DeviceProfile {
         prefs.heatScale = p.heatScale
         prefs.loadScale = p.loadScale
         prefs.preset = tier.name
+        // Hand back what the nubia Music 2 profile below changes, so a tier chosen by hand
+        // (or any other phone) starts from the port's own values.
+        prefs.sceneFloorPercent = 50
+        prefs.astcTextures = false
+        prefs.textureBudgetMB = 0
+        if (isNubiaMusic2()) prefs.crowd = true
+        // The nubia Music 2 (Unisoc T7200, Mali-G57 MP1, 4 GB) is below even the Low tier's
+        // assumptions, so on that phone Low starts from tighter settings than a Helio G99.
+        if (tier == Tier.LOW && isNubiaMusic2()) applyNubiaMusic2(prefs)
+    }
+
+    /**
+     * ZTE nubia Music 2 (Z2460): Unisoc T7200 (2x A75 + 6x A55, 12 nm), Mali-G57 MP1 (one shader core,
+     * about half a Helio G99's GPU), 4 GB eMMC 5.1 / LPDDR4, 720x1612 at 120 Hz. The scene starts at 56% and may fall to
+     * 38% (480x270) and FSR stretches it; no multisampling, crowd or big vertex shadow; 30 fps;
+     * BC textures go to ASTC (a quarter of the memory, the Mali has no BC sampling) with a
+     * smaller texture cache. Both dynamic rules are on: the GPU is the limit and a 10 W
+     * battery phone throttles early. Not measured on the phone: starting values to tune from.
+     */
+    fun applyNubiaMusic2(prefs: Prefs) {
+        prefs.sceneScalePercent = 56      // 9/16: where a match starts; the load rule goes down from here
+        prefs.sceneFloorPercent = 38      // 6/16 = 480x270, the least it may fall to
+        prefs.renderScale = 1
+        prefs.multisampling = false
+        prefs.fsr = true
+        prefs.fsrSharpness = 0.5f
+        prefs.fpsLimit = 30
+        prefs.lowMemory = true
+        prefs.heatScale = true
+        prefs.loadScale = true
+        prefs.crowd = false
+        prefs.perfHint = true
+        prefs.astcTextures = true
+        prefs.textureBudgetMB = 256
+        prefs.ballScalePercent = 150
+        prefs.widescreen = true
+    }
+
+    /** Model names and codes the nubia Music 2 is sold under, or its SoC. */
+    fun isNubiaMusic2(): Boolean {
+        val model = Build.MODEL.lowercase()
+        val device = Build.DEVICE.lowercase()
+        val soc = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) Build.SOC_MODEL.lowercase() else ""
+        val maker = Build.MANUFACTURER.lowercase()
+        val byName = (maker.contains("nubia") || maker.contains("zte")) &&
+            (model.contains("music 2") || model.contains("music2") || model.contains("z2460"))
+        return byName || device.contains("z2460") || soc.contains("t7200")
     }
 
     /**

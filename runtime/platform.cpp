@@ -232,6 +232,38 @@ namespace
                 else
                     topo.workerMask |= (1u << c.id);
             }
+            // Clock alone cannot tell a core from its neighbour on a part whose big and little
+            // cores report the same top clock (the Unisoc T7200: 2x A75 and 6x A55 at 1.6 GHz).
+            // Every core then looks like the prime one and nothing gets pinned. The scheduler's own
+            // capacity figure (1024 for the best core) does separate them, so use it for that case.
+            if (__builtin_popcount(topo.primeMask) == maxCpus)
+            {
+                std::vector<unsigned long> capacity(size_t(maxCpus), 0);
+                unsigned long best = 0, worst = ~0ul;
+                for (int i = 0; i < maxCpus; ++i)
+                {
+                    char path[128];
+                    std::snprintf(path, sizeof(path), "/sys/devices/system/cpu/cpu%d/cpu_capacity", i);
+                    if (FILE* f = std::fopen(path, "r"))
+                    {
+                        unsigned long value = 0;
+                        if (std::fscanf(f, "%lu", &value) == 1) capacity[size_t(i)] = value;
+                        std::fclose(f);
+                    }
+                    best = std::max(best, capacity[size_t(i)]);
+                    worst = std::min(worst, capacity[size_t(i)]);
+                }
+                if (best > 0 && worst > 0 && best * 3 > worst * 4)   // the cores differ by more than a third
+                {
+                    topo.primeMask = topo.perfMask = topo.workerMask = 0;
+                    for (int i = 0; i < maxCpus; ++i)
+                    {
+                        if (capacity[size_t(i)] >= best * 95 / 100) topo.primeMask |= (1u << i);
+                        else if (capacity[size_t(i)] >= best * 75 / 100) topo.perfMask |= (1u << i);
+                        else topo.workerMask |= (1u << i);
+                    }
+                }
+            }
             if (!topo.perfMask) topo.perfMask = topo.primeMask;
             if (!topo.workerMask) topo.workerMask = topo.perfMask;
         }
@@ -306,7 +338,10 @@ void platform::SetThreadAffinity(ThreadAffinityRole role)
         break;
     case ThreadAffinityRole::PerformanceCore:
         targetMask = s_topo.perfMask ? s_topo.perfMask : s_topo.primeMask;
-        if (wide && s_topo.workerMask != s_topo.perfMask) targetMask |= s_topo.workerMask;
+        // Two fast cores (a T7200's A75s) are far too few for the guest's dozens of threads,
+        // which would queue behind the main thread's spin: let them use the little cores too.
+        if ((wide || __builtin_popcount(targetMask) <= 2) && s_topo.workerMask != s_topo.perfMask)
+            targetMask |= s_topo.workerMask;
         break;
     case ThreadAffinityRole::WorkerCore:
         targetMask = s_topo.workerMask ? s_topo.workerMask : s_topo.perfMask;

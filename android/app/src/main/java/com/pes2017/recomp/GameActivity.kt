@@ -742,6 +742,7 @@ class GameActivity : AppCompatActivity(), NativeListener {
         // The port's own switches, from Settings > Performance. Always given,
         // so a player's choice wins over the runtime's per-device defaults.
         NativeBridge.nativeSetOption("PES17_SCENE_SCALE", String.format(Locale.US, "%.4f", prefs.sceneScalePercent / 100.0))
+        NativeBridge.nativeSetOption("PES17_SCENE_FLOOR", if (prefs.sceneFloorPercent < 50) ((prefs.sceneFloorPercent * 16 + 50) / 100).toString() else "")
         NativeBridge.nativeSetOption("PES17_BALL_SCALE", String.format(Locale.US, "%.2f", prefs.ballScalePercent / 100.0))
         NativeBridge.nativeSetOption("PES17_HEAT_SCALE", if (prefs.heatScale) "1" else "")
         NativeBridge.nativeSetOption("PES17_LOAD_SCALE", if (prefs.loadScale) "1" else "")
@@ -760,6 +761,7 @@ class GameActivity : AppCompatActivity(), NativeListener {
             if (prefs.widescreen) String.format(Locale.US, "%.4f", screenAspect()) else "",
         )
         NativeBridge.nativeSetOption("PES17_NO_SHADOW", if (prefs.lowMemory) "1" else "")
+        NativeBridge.nativeSetOption("PES17_BC_ASTC", if (prefs.astcTextures) "1" else "")
         // Full synchronous precompile at boot when the player asked for it in
         // Settings; otherwise the tiered instant-boot budget + background warmup.
         NativeBridge.nativeSetOption("PES17_SHADER_PREWARM_ALL", if (prefs.prewarmAllShaders) "1" else "")

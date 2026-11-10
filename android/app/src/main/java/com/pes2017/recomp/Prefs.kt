@@ -49,6 +49,15 @@ class Prefs(context: Context) {
         set(value) = store.edit().putInt(KEY_SCENE_SCALE, value.coerceIn(50, 100)).apply()
 
     /**
+     * The least the match render quality may fall to when the heat or load rule lowers it, in
+     * percent (PES17_SCENE_FLOOR, 38 to 50). 50 is the port's own floor; the nubia Music 2's GPU
+     * needs 38 (480x270).
+     */
+    var sceneFloorPercent: Int
+        get() = store.getInt(KEY_SCENE_FLOOR, 50).coerceIn(38, 50)
+        set(value) = store.edit().putInt(KEY_SCENE_FLOOR, value.coerceIn(38, 50)).apply()
+
+    /**
      * How much larger the match ball is drawn, in percent (PES17_BALL_SCALE, 100 to 300): the ball
      * is a few pixels on a phone's screen, so it defaults to 150.
      */
@@ -121,6 +130,15 @@ class Prefs(context: Context) {
         get() = if (store.contains(KEY_FPS_LIMIT)) store.getInt(KEY_FPS_LIMIT, 60).coerceIn(30, 60)
                 else if (store.getBoolean(KEY_CAP30, false)) 30 else 60
         set(value) = store.edit().putInt(KEY_FPS_LIMIT, value.coerceIn(30, 60)).apply()
+
+    /**
+     * Re-encode the title's BC (DXT) textures as ASTC 4x4 (PES17_BC_ASTC): a quarter of the texture
+     * memory on a GPU without BC sampling (Mali, most Adreno), at a small quality cost. A prototype
+     * in the runtime (docs/textures.md), so off by default.
+     */
+    var astcTextures: Boolean
+        get() = store.getBoolean(KEY_ASTC, false)
+        set(value) = store.edit().putBoolean(KEY_ASTC, value).apply()
 
     /** Skip the large vertex shadow buffer (PES17_NO_SHADOW), for phones with little memory. */
     var lowMemory: Boolean
@@ -339,6 +357,8 @@ class Prefs(context: Context) {
         private const val KEY_FPS_LIMIT = "fpsLimit"
         private const val KEY_WIDESCREEN = "widescreen"
         private const val KEY_LOW_MEMORY = "lowMemory"
+        private const val KEY_ASTC = "astcTextures"
+        private const val KEY_SCENE_FLOOR = "sceneFloor"
         private const val KEY_PENDING_FOLDER = "pendingFolder"
         const val HUD_OFF = 0
         const val HUD_MINIMAL = 1

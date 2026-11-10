@@ -55,6 +55,23 @@ namespace
         Check(c.Current() == 8, "and stays there: there is nothing below the floor");
     }
 
+    // The nubia Music 2's floor: 6/16 (480x270) instead of the usual 8/16.
+    void LowFloor()
+    {
+        Controller c;
+        c.Configure(9, 6, 33.0);
+        Check(c.Floor() == 6 && c.Current() == 9, "a floor of 6 sixteenths is kept");
+        Run(c, 90.0, 6);
+        Check(c.Current() == 6, "a GPU far over the budget walks down to 6/16");
+        Run(c, 90.0, 4);
+        Check(c.Current() == 6, "and stops at the lower floor");
+        c.SetThermal(4);
+        Check(c.ThermalCeiling() == 6, "critical heat takes the ceiling to the floor");
+        Controller d;
+        d.Configure(9, 2, 33.0);
+        Check(d.Floor() == 4, "a floor below 4 sixteenths is lifted to 4");
+    }
+
     void Recovery()
     {
         Controller c;
@@ -205,6 +222,7 @@ namespace
 int main()
 {
     Overrun();
+    LowFloor();
     Recovery();
     Sudden();
     NoFlapping();

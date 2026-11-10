@@ -250,7 +250,11 @@ bool vk::renderer::Initialise()
                 std::fclose(f);
             }
 #endif
-            asked = std::clamp(asked, 0.5, 1.0);
+            // PES17_SCENE_FLOOR: the least the scene may be drawn at, in sixteenths of 1280x720
+            // (8 = half, the default; 6 = 480x270). A GPU far below the one the port was tuned on
+            // (a Mali-G57 MP1) needs to go lower than half before it holds a frame rate.
+            const int floorSixteenths = int(std::clamp<uint64_t>(env::Number("PES17_SCENE_FLOOR", 8), 6, 8));
+            asked = std::clamp(asked, floorSixteenths / 16.0, 1.0);
             g.sceneScale = float(std::round(asked * 16.0) / 16.0);
             if (g.sceneScale < 1.0f)
                 LOGI("renderer: the scene is drawn at %.4g of 1280x720 (%ux%u)", g.sceneScale,
@@ -268,7 +272,7 @@ bool vk::renderer::Initialise()
             {
                 const uint32_t limit = frame_rate::Limit();
                 const double period = 1000.0 / double(limit ? std::min(limit, 240u) : 60u);
-                g.dynScale.Configure(int(std::lround(g.sceneScale * 16.0f)), 8, period * 0.78);
+                g.dynScale.Configure(int(std::lround(g.sceneScale * 16.0f)), floorSixteenths, period * 0.78);
                 g.dynScale.SetRules(g.heatScale, g.loadScale);
                 g.dynScale.SetThermal(g.thermalStatus.load());
                 LOGI("renderer: the scene scale moves with %s%s%s: %u/16 to %u/16, passes under %.1f ms",
