@@ -120,6 +120,21 @@ object DeviceProfile {
         return byName || device.contains("z2460") || soc.contains("t7200")
     }
 
+    /** Bumped when the nubia Music 2 values change, so an install that already has a preset gets them once. */
+    private const val NUBIA_PROFILE_VERSION = 1
+
+    /**
+     * ensurePreset only acts when no preset was ever stored, so an install made before the
+     * nubia Music 2 profile existed would keep its old Low values for good. This applies the
+     * profile once per version on that phone; a player who tuned by hand (CUSTOM) is left alone.
+     */
+    fun ensureNubiaProfile(prefs: Prefs) {
+        if (!isNubiaMusic2() || prefs.nubiaProfileVersion >= NUBIA_PROFILE_VERSION) return
+        prefs.nubiaProfileVersion = NUBIA_PROFILE_VERSION
+        if (prefs.preset == PRESET_CUSTOM) return
+        apply(prefs, Tier.LOW)
+    }
+
     /**
      * The first time a version with presets runs: a player who never touched the
      * performance settings gets the detected tier; one who did is left as they

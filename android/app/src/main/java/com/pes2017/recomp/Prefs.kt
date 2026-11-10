@@ -153,6 +153,11 @@ class Prefs(context: Context) {
         get() = store.getString(KEY_PRESET, "") ?: ""
         set(value) = store.edit().putString(KEY_PRESET, value).apply()
 
+    /** Which version of the nubia Music 2 profile was last applied (DeviceProfile.ensureNubiaProfile). */
+    var nubiaProfileVersion: Int
+        get() = store.getInt(KEY_NUBIA_PROFILE, 0)
+        set(value) = store.edit().putInt(KEY_NUBIA_PROFILE, value).apply()
+
     /** Whether the player set any of the settings a preset sets, before presets existed. */
     fun hasTunedPerformance(): Boolean =
         listOf(KEY_SCENE_SCALE, KEY_MSAA, KEY_FSR, KEY_CAP30, KEY_FPS_LIMIT, KEY_LOW_MEMORY).any { store.contains(it) }
@@ -359,6 +364,7 @@ class Prefs(context: Context) {
         private const val KEY_LOW_MEMORY = "lowMemory"
         private const val KEY_ASTC = "astcTextures"
         private const val KEY_SCENE_FLOOR = "sceneFloor"
+        private const val KEY_NUBIA_PROFILE = "nubiaProfileVersion"
         private const val KEY_PENDING_FOLDER = "pendingFolder"
         const val HUD_OFF = 0
         const val HUD_MINIMAL = 1

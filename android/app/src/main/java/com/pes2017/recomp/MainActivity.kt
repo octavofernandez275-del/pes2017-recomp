@@ -82,6 +82,7 @@ class MainActivity : AppCompatActivity() {
         prefs = Prefs(this)
         // The performance preset this phone starts from, once (DeviceProfile).
         try { DeviceProfile.ensurePreset(this, prefs) } catch (_: Throwable) {}
+        try { DeviceProfile.ensureNubiaProfile(prefs) } catch (_: Throwable) {}
 
         status = findViewById(R.id.status)
         footer = findViewById(R.id.footer)
